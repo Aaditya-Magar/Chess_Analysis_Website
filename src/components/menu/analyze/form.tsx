@@ -32,7 +32,7 @@ export default function Form(props: { setData: (data: Data) => void, selectGame:
     const formRef = useRef<HTMLFormElement>(null)
     const inputRef = useRef<HTMLTextAreaElement>(null)
 
-    const shiftPressed = useRef(false)
+    const [fileError, setFileError] = useState("")
 
     useEffect(() => {
         const previousDepth = localStorage.getItem('depth')
@@ -57,8 +57,8 @@ export default function Form(props: { setData: (data: Data) => void, selectGame:
         if (FORMATS[previousSelectedNumber] != null) {
             select(previousSelectedNumber)
         } else {
-            select(0)
-            localStorage.setItem('format', String(0))
+            select(2)
+            localStorage.setItem('format', String(2))
         }
     }, [])
     
@@ -85,20 +85,23 @@ export default function Form(props: { setData: (data: Data) => void, selectGame:
     function analyze(e: React.FormEvent) {
         e.preventDefault()
 
+        const text = value.trim()
+        if (!text) return
+
         switch (FORMATS[selected][0]) {
             case "Chess.com":
-                localStorage.setItem("chesscom", value)
-                selectGame(value, "chessCom")
+                localStorage.setItem("chesscom", text)
+                selectGame(text, "chessCom")
                 break
             case "Lichess.org":
-                localStorage.setItem("lichessorg", value)
-                selectGame(value, "lichessOrg")
+                localStorage.setItem("lichessorg", text)
+                selectGame(text, "lichessOrg")
                 break
             case "PGN":
-                setData({ format: "pgn", string: value })
+                setData({ format: "pgn", string: text })
                 break
             case "FEN":
-                setData({ format: "fen", string: value })
+                setData({ format: "fen", string: text })
                 break
         }
     }
@@ -120,18 +123,25 @@ export default function Form(props: { setData: (data: Data) => void, selectGame:
     }
 
     function handleKeyDown(e: React.KeyboardEvent) {
-        if (e.key === 'Enter' && !shiftPressed.current) {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
             e.preventDefault()
-            formRef.current?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))
-        }
-        if (e.key === 'Shift') {
-            shiftPressed.current = true
+            formRef.current?.requestSubmit()
         }
     }
 
-    function handleKeyUp(e: React.KeyboardEvent) {
-        if (e.key === 'Shift') {
-            shiftPressed.current = false
+    async function openPgn(event: React.ChangeEvent<HTMLInputElement>) {
+        const file = event.currentTarget.files?.[0]
+        event.currentTarget.value = ""
+        if (!file) return
+        setFileError("")
+        try {
+            const text = (await file.text()).trim()
+            if (!text) throw new Error("Empty file")
+            localStorage.setItem("format", "2")
+            select(2)
+            setData({ format: "pgn", string: text })
+        } catch {
+            setFileError("Could not open this PGN file.")
         }
     }
 
@@ -149,9 +159,9 @@ export default function Form(props: { setData: (data: Data) => void, selectGame:
 
     return (
         <form ref={formRef} onSubmit={analyze} className="flex flex-col items-center gap-4">
-            <textarea spellCheck={false} rows={1} value={value} onKeyDown={handleKeyDown} onKeyUp={handleKeyUp} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setValue(e?.currentTarget.value)} ref={inputRef} placeholder={inputPlaceholder} className="w-[85%] px-2 py-[13px] flex items-center transition-colors text-xl font-bold rounded-borderRoundness border-border hover:border-borderHighlighted focus:border-borderHighlighted border-solid border-[1px] bg-backgroundBoxBox outline-none placeholder:text-placeholder placeholder:font-normal resize-none" />
+            <textarea spellCheck={false} rows={1} value={value} onKeyDown={handleKeyDown} aria-label={inputPlaceholder} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setValue(e?.currentTarget.value)} ref={inputRef} placeholder={inputPlaceholder} className="w-[85%] px-2 py-[13px] flex items-center transition-colors text-xl font-bold rounded-borderRoundness border-border hover:border-borderHighlighted focus:border-borderHighlighted border-solid border-[1px] bg-backgroundBoxBox outline-none placeholder:text-placeholder placeholder:font-normal resize-none" />
             <div className="w-[85%] flex flex-col gap-2">
-                <button type="button" className="flex flex-row gap-1 items-center justify-center w-full h-14 rounded-borderRoundness text-xl bg-backgroundBoxBox hover:bg-backgroundBoxBoxHover hover:text-foregroundHighlighted transition-colors font-bold relative" onClick={e => { e.preventDefault(); setSelecting(isSelecting => !isSelecting) }}>
+                <button type="button" aria-label={`Game format: ${FORMATS[selected][0]}`} aria-expanded={isSelecting} className="flex flex-row gap-1 items-center justify-center w-full h-14 rounded-borderRoundness text-xl bg-backgroundBoxBox hover:bg-backgroundBoxBoxHover hover:text-foregroundHighlighted transition-colors font-bold relative" onClick={e => { e.preventDefault(); setSelecting(isSelecting => !isSelecting) }}>
                     <Image draggable={false} alt="icon" src={FORMATS[selected][1]} width={28} height={28} />
                     {FORMATS[selected][0]}
                     <div className={`absolute h-full right-6 top-0 flex flex-row items-center ${isSelecting ? "" : "rotate-180"}`}><Arrow class="fill-foregroundGrey" /></div>
@@ -163,7 +173,7 @@ export default function Form(props: { setData: (data: Data) => void, selectGame:
                             return (
                                 <li key={i}>
                                     <button type="button" onClick={() => changeSelected(i)} style={{ gap: i !== 0 ? '.4rem' : '0' }} className="flex flex-row items-center justify-center h-12 w-full hover:text-foregroundHighlighted rounded-borderRoundness text-md bg-backgroundBoxBox hover:bg-backgroundBoxBoxHover transition-colors font-bold">
-                                        <Image draggable={false} alt="format" src={format[1]} width={150} height={0} className="h-6 w-fit" priority />
+                                        <Image draggable={false} alt="" src={format[1]} width={150} height={0} className="h-6 w-fit" priority />
                                         {format[0]}
                                     </button>
                                 </li>
@@ -185,7 +195,12 @@ export default function Form(props: { setData: (data: Data) => void, selectGame:
                     </ul>
                 </div>
             </div>
-            <input type="submit" className="w-[85%] h-16 cursor-pointer rounded-borderExtraRoundness text-2xl bg-backgroundBoxBoxHighlighted hover:bg-backgroundBoxBoxHighlightedHover transition-all font-extrabold hover:shadow-shadowBoxBoxHighlighted" value={analyzeValue} />
+            <label className="w-[85%]">
+                <span className="text-sm text-foregroundGrey">Open PGN file</span>
+                <input aria-label="Open PGN file" type="file" accept=".pgn,text/plain" onChange={openPgn} className="block w-full cursor-pointer text-sm" />
+            </label>
+            {fileError && <p role="alert" className="w-[85%] text-sm">{fileError}</p>}
+            <input disabled={!value.trim()} type="submit" className="w-[85%] h-16 cursor-pointer rounded-borderExtraRoundness text-2xl bg-backgroundBoxBoxHighlighted hover:bg-backgroundBoxBoxHighlightedHover transition-all font-extrabold hover:shadow-shadowBoxBoxHighlighted" value={analyzeValue} />
         </form>
     )
 }

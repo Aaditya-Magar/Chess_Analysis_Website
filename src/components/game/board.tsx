@@ -1,5 +1,5 @@
 import { deformatSquare, formatSquare, moveRating, position, result, square } from "@/engine/stockfish";
-import { RefObject, useContext, useEffect, useRef, useState } from "react";
+import { type JSX, RefObject, useContext, useEffect, useRef, useState } from "react";
 import { BISHOP, BLACK, Chess, Color, KING, KNIGHT, PAWN, PieceSymbol, QUEEN, ROOK, Square, WHITE } from "chess.js";
 import { Howl } from "howler";
 import { ConfigContext } from "@/context/config";
@@ -290,7 +290,7 @@ function Coronation(props: { white: boolean, column: number, coroningWhite: bool
     )
 }
 
-function Piece(props: { squareSize: number, pieceRef: RefObject<HTMLDivElement>, castleRookRef: RefObject<HTMLDivElement>, moved: boolean, isCastleRook: boolean, pieceColor: Color, pieceSymbol: PieceSymbol, drag: drag, setDrag: (dragging: drag) => void, id: string, boardRef: RefObject<HTMLDivElement>, setPlaying: (playing: boolean) => void, isCoronating: boolean }) {
+function Piece(props: { squareSize: number, pieceRef: RefObject<HTMLDivElement | null>, castleRookRef: RefObject<HTMLDivElement | null>, moved: boolean, isCastleRook: boolean, pieceColor: Color, pieceSymbol: PieceSymbol, drag: drag, setDrag: (dragging: drag) => void, id: string, boardRef: RefObject<HTMLDivElement | null>, setPlaying: (playing: boolean) => void, isCoronating: boolean }) {
     const { boardRef, pieceRef, castleRookRef, moved, isCastleRook, pieceColor, pieceSymbol, drag, setDrag, id, squareSize, setPlaying, isCoronating } = props
 
     const [movement, setMovement] = useState({ x: 0, y: 0 })

@@ -1,35 +1,25 @@
 # Brilliant Chess
 
-![screenshot](images/screenshot.png)
+This project uses the MIT-licensed [Brilliant Chess](https://github.com/wdeloo/Brilliant-Chess) interface and game review workflow. Paste PGN, open a local PGN file, enter a FEN position, or choose an import source in the game form. Stockfish runs in the browser.
 
-[**Brilliant Chess**](https://wdeloo.github.io/Brilliant-Chess) is a **free** **open source** app to analyze chess games in a similar way **Chess.com** does.
+## Local development
 
+Use Node.js 22 or later.
 
-
-## Self Hosting
-
-1. Clone the repository:
-
-```
-git clone https://github.com/wdeloo/Brilliant-Chess.git
-cd Brilliant-Chess
+```sh
+npm ci
+npm run dev
 ```
 
-2. Create a `.env` file:
+## Production preview and Cloudflare
 
-```
-echo "NEXT_PUBLIC_BASE_PATH=" > .env
-```
-
-3. Install dependencies and build the project:
-
-```
-npm install
+```sh
 npm run build
+npm start
 ```
 
-4. Start the server:
+Next.js exports the static site to `dist/`. Wrangler serves it with the same asset configuration used for deployment. To publish to your Cloudflare account, run `npx wrangler login` and `npm run deploy`.
 
-```
-npm run start
-```
+Run `npm run lint` for source checks and `npx playwright install chromium && npm test` for the review smoke test. Set `CHESS_TEST_CHROME` to use an installed Chrome binary.
+
+See [LICENSE](LICENSE) and [ATTRIBUTIONS](ATTRIBUTIONS) for upstream and asset credits.

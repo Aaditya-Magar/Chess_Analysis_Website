@@ -57,3 +57,7 @@ ssl/*
 
 # Distribution
 dist
+/public/engine/stockfish-19-lite-single.*
+/.wrangler/
+/test-results/
+/playwright-report/

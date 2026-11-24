@@ -9,15 +9,11 @@ import Evaluation from "./evaluation"
 import { AnalyzeContext, CustomLine } from "@/context/analyze"
 import { formatSquare, getCastle, invertColor, move, openings, parseMove, parsePGN, parsePosition, prepareStockfish, result, square } from "@/engine/stockfish"
 import { Chess, PieceSymbol, WHITE } from "chess.js"
-import { getAproxMemory, wasmSupported, wasmThreadsSupported } from "@/engine/wasmChecks"
 import { pushPageWarning, pushPageError } from "@/components/errors/pageErrors"
 import { ErrorsContext } from "@/context/errors"
 import { maxVertical, navTop } from "../../../tailwind.config"
 import { ConfigContext } from "@/context/config"
 import GameButtons from "../menu/analysis/gameButtons"
-
-// const NOT_SUPPORTED_WASM_THREADS_WARNING = ['WebAssembly threads not supported', 'The app may run slower. Try updating your browser for better performance.']
-const NOT_SUPPORTED_WASM_WARNING = ['WebAssembly not supported', 'The app may run very slow. Try updating your browser for better performance.']
 
 export type arrow = square[]
 export interface AllGameArrows { [key: number]: arrow[] }
@@ -90,7 +86,7 @@ export default function Game() {
     const [moveNumber, setMoveNumber] = analyzeContext.moveNumber
     const [game, setGame] = analyzeContext.game
     const [data] = analyzeContext.data
-    const [pageState, setPageState] = analyzeContext.pageState
+    const [, setPageState] = analyzeContext.pageState
     const [forward, setForward] = analyzeContext.forward
     const [animation, setAnimation] = analyzeContext.animation
     const [white, setWhite] = analyzeContext.white
@@ -98,7 +94,6 @@ export default function Game() {
     const [materialAdvantage] = analyzeContext.materialAdvantage
     const [result, setResult] = analyzeContext.result
     const setProgress = analyzeContext.progress[1]
-    const [tab, setTab] = analyzeContext.tab
     const [analyzeController, setAnalyzeController] = analyzeContext.analyzeController
     const [customLine, setCustomLine] = analyzeContext.customLine
     const [returnedToNormalGame] = analyzeContext.returnedToNormalGame
@@ -115,8 +110,7 @@ export default function Game() {
     const componentRef = useRef<HTMLDivElement>(null)
     const gameRef = useRef<HTMLDivElement>(null)
 
-    const intervalRef = useRef<NodeJS.Timeout>()
-    const tabRef = useRef(tab)
+    const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
     const dragRef = useRef(drag)
 
@@ -138,48 +132,29 @@ export default function Game() {
     useEffect(() => {
         (async () => {
             const openingsRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH}/openings/openings.json`)
+            if (!openingsRes.ok) throw new Error('Opening book unavailable')
             const openings = await openingsRes.json()
             setOpenings(openings as openings)
-        })()
+        })().catch(() => pushPageWarning(setErrors, 'Opening book unavailable', 'Engine analysis remains available.'))
     }, [])
 
     useEffect(() => {
-        if (!wasmThreadsSupported()) {
-            if (!wasmSupported()) {
-                // Web Assembly not Supported
-                pushPageWarning(setErrors, NOT_SUPPORTED_WASM_WARNING[0], NOT_SUPPORTED_WASM_WARNING[1])
-                engineWorkerRef.current = new window.Worker(`${process.env.NEXT_PUBLIC_BASE_PATH}/engine/stockfish-asm.js`)
-            } else {
-                // Web Assembly Threads not Supported
-                // pushPageWarning(setErrors, NOT_SUPPORTED_WASM_THREADS_WARNING[0], NOT_SUPPORTED_WASM_THREADS_WARNING[1])
-                engineWorkerRef.current = new window.Worker(`${process.env.NEXT_PUBLIC_BASE_PATH}/engine/stockfish-single.js`)
-            }
-        } else {
-            // Supported
-            engineWorkerRef.current = new window.Worker(`${process.env.NEXT_PUBLIC_BASE_PATH}/engine/stockfish.js`)
+        const stockfish = new Worker(`${process.env.NEXT_PUBLIC_BASE_PATH}/engine/stockfish-19-lite-single.js`)
+        engineWorkerRef.current = stockfish
+        let mounted = true
+        void prepareStockfish(stockfish).catch(() => {
+            if (mounted) pushPageError(setErrors, "Stockfish could not start", "Reload the page and try again.")
+        })
+        return () => {
+            mounted = false
+            stockfish.terminate()
+            engineWorkerRef.current = null
         }
-
-        const stockfish = engineWorkerRef.current
-
-        const threads = navigator.hardwareConcurrency ?? 1
-        const hash = Math.floor(getAproxMemory() / 4)
-
-        const errorTimeout = setTimeout(() => pushPageError(setErrors, 'The browser is having some troubles loading Stockfish', "If the app doesn't work properly try restarting the browser."), 15000);
-        (async () => {
-            await prepareStockfish(stockfish, threads, hash)
-            clearTimeout(errorTimeout)
-        })()
-
-        return () => clearTimeout(errorTimeout)
     }, [])
 
     useEffect(() => {
         setAnimation(false)
     }, [moveNumber, customLine.moveNumber])
-
-    useEffect(() => {
-        tabRef.current = tab
-    }, [tab])
 
     useEffect(() => {
         clearInterval(intervalRef.current)
@@ -251,6 +226,7 @@ export default function Game() {
         let lastPressed = 0
         function handleKeyDown(e: KeyboardEvent) {
             const element = e.target as HTMLElement
+            if (e.altKey || e.ctrlKey || e.metaKey || element.closest("select, [contenteditable]") || (e.key === " " && element.closest("button, a, input"))) return
             const focusableInputTypes = ['text', 'number', 'password', 'email', 'search', 'tel', 'url']
             if (element.tagName === 'INPUT' && focusableInputTypes.includes(element.getAttribute('type') ?? '')) return
             if (element.tagName === 'TEXTAREA') return
@@ -279,6 +255,7 @@ export default function Game() {
 
                     lastPressed = new Date().getTime()
                     break
+                case 'Home':
                 case 'ArrowUp':
                     e.preventDefault()
                     if (dragRef.current.is) return
@@ -289,6 +266,7 @@ export default function Game() {
 
                     lastPressed = new Date().getTime()
                     break
+                case 'End':
                 case 'ArrowDown':
                     e.preventDefault()
                     if (dragRef.current.is) return
@@ -309,25 +287,15 @@ export default function Game() {
 
                     lastPressed = new Date().getTime()
                     break
-                case 'Tab':
-                    e.preventDefault()
-                    if (now - lastPressed < minPressInterval) return
-
-                    const tab = tabRef.current
-
-                    if (pageState === "analyze") {
-                        if (tab === 'summary') setTab('moves')
-                        else if (tab === 'moves') setTab('summary')
-                    }
-                    break
             }
         }
 
         document.addEventListener('keydown', handleKeyDown)
-        return () => window.removeEventListener('keydown', handleKeyDown)
+        return () => document.removeEventListener('keydown', handleKeyDown)
     }, [])
 
     async function handlePGN(pgn: string, depth: number) {
+        setPlaying(false)
         const PGN_ERROR = ['Error reading PGN', 'Please, provide a valid PGN.']
 
         setPageState('loading')
@@ -338,16 +306,11 @@ export default function Game() {
             return
         }
 
-        if (!wasmThreadsSupported()) {
-            if (!wasmSupported()) {
-                pushPageWarning(setErrors, NOT_SUPPORTED_WASM_WARNING[0], NOT_SUPPORTED_WASM_WARNING[1])
-            } else {
-                // pushPageWarning(setErrors, NOT_SUPPORTED_WASM_THREADS_WARNING[0], NOT_SUPPORTED_WASM_THREADS_WARNING[1])
-            }
-        }
-
         const stockfish = engineWorkerRef.current
-        if (!stockfish) return
+        if (!stockfish) {
+            setPageState('default')
+            return
+        }
 
         try {
             const { metadata, moves } = await parsePGN(stockfish, pgn, depth, openings, setProgress, analyzeController.signal)
@@ -369,8 +332,11 @@ export default function Game() {
                     pushPageError(setErrors, PGN_ERROR[0], PGN_ERROR[1])
                     break
                 case 'canceled':
+                case 'This operation was aborted':
                     setAnalyzeController(new AbortController())
                     break
+                default:
+                    pushPageError(setErrors, 'Stockfish analysis failed', 'Try again or select a lower analysis depth.')
             }
 
             setPageState('default')
@@ -381,79 +347,44 @@ export default function Game() {
     }
 
     async function handleFEN(fen: string) {
-        const FEN_ERROR = ['Error reading FEN', 'Please, provide a valid FEN.']
+        setTime(0)
+        setPlayers([{ name: "White", elo: "?" }, { name: "Black", elo: "?" }])
+        setWhite(true)
+        setPlaying(false)
+        setMoveNumber(0)
+        setResult("")
+        setProgress(0)
+        setCustomLine({ moveNumber: -1, moves: [], arrows: {} })
+        setAnalyzingMove(false)
+        cleanArrows()
 
-        let move
+        let chess: Chess
         try {
-            move = await new Promise<move>(async (resolve, reject) => {
-                setPageState('loading')
-
-                setTime(0)
-                setPlayers([{ name: 'White', elo: '?' }, { name: 'Black', elo: '?' }])
-                setWhite(true)
-                setPlaying(false)
-                setMoveNumber(0)
-                setResult("")
-                setProgress(0)
-                setCustomLine({ moveNumber: -1, moves: [], arrows: {} })
-                setAnalyzingMove(false)
-                cleanArrows()
-
-                if (!fen) {
-                    const chess = new Chess()
-                    const fen = chess.fen()
-                    const bestMove = chess.move({ from: "e2", to: "e4" })
-
-                    const move: move = {
-                        fen,
-                        color: chess.turn(),
-                        bestMove: [formatSquare(bestMove.from), formatSquare(bestMove.to)],
-                        bestMoveSan: bestMove.san,
-                        previousStaticEvals: [["cp", "-30"]]
-                    }
-
-                    setGame([move])
-                    setPageState('default')
-                    return
-                }
-
-                const stockfish = engineWorkerRef.current
-                if (!stockfish) return
-
-                let chess
-                try {
-                    chess = new Chess(fen)
-                } catch {
-                    reject(new Error("fen"))
-                    return
-                }
-                const signal = analyzeController.signal
-
-                function handleAbort() {
-                    reject(new Error('canceled'))
-                    signal.removeEventListener('abort', handleAbort)
-                }
-
-                const move = await parsePosition(stockfish, chess, depth, signal, handleAbort)
-
-                resolve(move)
-            })
-        } catch (e: any) {
-            switch (e.message) {
-                case 'fen':
-                    pushPageError(setErrors, FEN_ERROR[0], FEN_ERROR[1])
-                    break
-                case 'canceled':
-                    setAnalyzeController(new AbortController())
-                    break
-            }
-
-            setPageState('default')
+            chess = fen ? new Chess(fen) : new Chess()
+        } catch {
+            pushPageError(setErrors, "Error reading FEN", "Please provide a valid FEN.")
+            setPageState("default")
             return
         }
 
-        setGame([move])
-        setPageState('analyzeCustom')
+        if (!fen) {
+            setGame([{ fen: chess.fen(), color: chess.turn(), previousStaticEvals: [["cp", "0"]] }])
+            setPageState("default")
+            return
+        }
+
+        setPageState("loading")
+        try {
+            const stockfish = engineWorkerRef.current
+            if (!stockfish) throw new Error("Engine unavailable")
+            const position = await parsePosition(stockfish, chess, depth, analyzeController.signal)
+            setGame([position])
+            setPageState("analyzeCustom")
+        } catch {
+            if (analyzeController.signal.aborted) setAnalyzeController(new AbortController())
+            else pushPageError(setErrors, "Stockfish analysis failed", "Try again or select a lower analysis depth.")
+            setPageState("default")
+        }
     }
 
     useEffect(() => {
@@ -555,7 +486,7 @@ export default function Game() {
     }, [moveNumber, customLine.moveNumber])
 
     function roundBoardSize(boardSize: number) {
-        return Math.round(boardSize / 8) * 8
+        return Math.max(80, Math.floor(boardSize / 8) * 8)
     }
 
     function sliceCustomArrows(arrows: AllGameArrows, moveNumber: number) {
@@ -588,27 +519,17 @@ export default function Game() {
 
         if (data.format === "fen") setPageState("analyzeCustom")
 
-        const move = await new Promise<move>(async (resolve, reject) => {
-            const signal = analyzeController.signal
-
-            function handleAbort() {
-                reject(new Error('canceled'))
-                signal.removeEventListener('abort', handleAbort)
-            }
-
+        try {
             const stockfish = engineWorkerRef.current
-            if (!stockfish) return
-
-            const chess = new Chess(previousFen)
-            const move = chess.move(movement)
-
-            const analyzedMovement = await parseMove(stockfish, depth, move, chess, previousStaticEvals, previousBestMoveSan, previousSacrifice, openings, handleAbort, signal)
-            resolve(analyzedMovement)
-        })
-
-        setAnimation(false)
-        setAnalyzingMove(false)
-        setCustomLine(prev => ({ ...prev, moveNumber: prev.moveNumber, moves: [...prev.moves.slice(0, prev.moveNumber), move] }))
+            if (!stockfish) throw new Error("Engine unavailable")
+            const analyzed = await parseMove(stockfish, depth, unanalyzedMoveObj, chess, previousStaticEvals, previousBestMoveSan, previousSacrifice, openings, analyzeController.signal)
+            setCustomLine(prev => ({ ...prev, moves: [...prev.moves.slice(0, prev.moveNumber), analyzed] }))
+        } catch {
+            if (!analyzeController.signal.aborted) pushPageError(setErrors, "Variation analysis failed", "You can still return to the game.")
+        } finally {
+            setAnimation(false)
+            setAnalyzingMove(false)
+        }
     }
 
     function formatTime(seconds: number): string {

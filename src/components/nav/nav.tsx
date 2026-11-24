@@ -1,104 +1,75 @@
 "use client"
 
 import Image from "next/image"
-import GitHub from "../svg/github"
+import Link from "next/link"
 import { useContext, useEffect, useRef } from "react"
-import Licenses from "../svg/license"
+import GitHub from "../svg/github"
 import Settings from "./settings/settings"
 import { ConfigContext } from "@/context/config"
-import Link from "next/link"
 
-export const DONATE_URL = "https://www.paypal.com/donate/?hosted_button_id=S8SWJBNYZ2WFW"
+const links = [
+    { label: "Source Code", href: "https://github.com/wdeloo/Brilliant-Chess", icon: GitHub },
+]
 
 export default function Nav() {
-    const configContext = useContext(ConfigContext)
-
-    const [openedMenu, setOpenedMenu] = configContext.openedMenu
-    const boardMenuSettingsRef = configContext.boardMenuSettingsRef
-
-    const topLinksRef = useRef<HTMLDivElement>(null)
-    const menuRef = useRef<HTMLDivElement>(null)
-
-    interface TopLink {
-        label: string,
-        click?: () => void,
-        hover?: () => void,
-        unHover?: () => void,
-        icon: string,
-        role: "button"|"link",
-    }
-
-    const topLinks: TopLink[] = [
-        { label: "Settings", hover: openSettings, icon: `${process.env.NEXT_PUBLIC_BASE_PATH}/images/setting.svg`, role: "button" },
-    ]
-
-    interface BotLinks {
-        label: string,
-        href: string,
-        icon: (props: {className: string}) => React.ReactNode,
-    }
-
-    const botLinks: BotLinks[] = [
-        { label: "Source Code", href: "https://github.com/wdeloo/Brilliant-Chess", icon: (props: {className: string}) => <GitHub class={props.className} /> },
-        { label: "Attributions", href: "/attributions", icon: (props: {className: string}) => <Licenses class={props.className} /> },
-    ]
-
-    function openSettings() {
-        setOpenedMenu("settings")
-    }
-
-    function closeMenu() {
-        setOpenedMenu(null)
-    }
+    const { openedMenu: [openedMenu, setOpenedMenu] } = useContext(ConfigContext)
+    const settingsButton = useRef<HTMLButtonElement>(null)
+    const settingsPanel = useRef<HTMLDivElement>(null)
+    const isOpen = openedMenu === "settings"
 
     useEffect(() => {
-        function handleClick(e: MouseEvent) {
-            if (
-                !menuRef.current?.contains(e.target as Node)
-                &&
-                !topLinksRef.current?.contains(e.target as Node)
-                &&
-                !boardMenuSettingsRef.current?.contains(e.target as Node)
-            ) {
-                closeMenu()
-            }
+        if (!isOpen) return
+
+        function closeOutside(event: PointerEvent) {
+            const target = event.target as Node
+            if (settingsPanel.current?.contains(target) || settingsButton.current?.contains(target)) return
+            setOpenedMenu(null)
         }
 
-        document.addEventListener('mousedown', handleClick)
+        function closeOnEscape(event: KeyboardEvent) {
+            if (event.key !== "Escape") return
+            setOpenedMenu(null)
+            settingsButton.current?.focus()
+        }
 
-        return () => document.removeEventListener('mousedown', handleClick)
-    }, [])
+        document.addEventListener("pointerdown", closeOutside)
+        document.addEventListener("keydown", closeOnEscape)
+        return () => {
+            document.removeEventListener("pointerdown", closeOutside)
+            document.removeEventListener("keydown", closeOnEscape)
+        }
+    }, [isOpen, setOpenedMenu])
 
     return (
-        <nav className="flex flex-col navTop:h-screen navTop:w-max w-screen relative">
-            <div className="navTop:pt-1 navTop:pb-6 navTop:h-full w-full overflow-y-auto bg-backgroundBox flex navTop:flex-col flex-row justify-between select-none navTop:items-start items-stretch">
-                <div ref={topLinksRef} className="flex navTop:flex-col flex-row">
-                    <Link draggable={false} onMouseEnter={() => setOpenedMenu(null)} href="/" className="flex flex-row gap-1 font-extrabold text-xl navTop:p-3 p-1.5 transition-colors hover:bg-backgroundBoxHover hover:text-foregroundHighlighted">
-                        <Image draggable={false} height={30} width={30} alt="logo" src={`${process.env.NEXT_PUBLIC_BASE_PATH}/images/logo.svg`} className="navTop:mt-[-2px]" />
-                        <div className="h-fit w-fit reduceNav:block hidden">Brilliant<span className="text-sm font-light">Chess</span></div>
-                    </Link>
-                    {topLinks.map((link, i) => {
-                        return (
-                            <button onClick={link?.click} onMouseEnter={link?.hover} onMouseLeave={link?.unHover} type="button" key={i} className="text-lg outline-none font-bold navTop:px-3 navTop:py-2 p-1.5 hover:bg-backgroundBoxHover hover:text-foregroundHighlighted transition-colors flex flex-row gap-2">
-                                <Image draggable={false} height={30} width={30} alt={link.label} src={link.icon} className="transition-colors" />
-                                <div className="h-fit w-fit reduceNav:block hidden">{link.label}</div>
-                            </button>
-                        )
-                    })}
+        <nav aria-label="Site navigation" className="relative flex w-screen flex-col navTop:h-screen navTop:w-max">
+            <div className="flex w-full justify-end bg-backgroundBox select-none navTop:h-full navTop:flex-col navTop:pb-2">
+                <div className="flex flex-row text-sm font-bold navTop:w-full navTop:flex-col">
+                    {links.map(({ label, href, icon: Icon }) => (
+                        <Link aria-label={label} key={href} target="_blank" href={href} className="group flex items-center justify-center gap-2 p-2 text-foregroundGrey hover:bg-backgroundBoxHover hover:text-foregroundHighlighted reduceNav:justify-start reduceNav:px-3">
+                            <Icon class="fill-foregroundGrey transition-colors group-hover:fill-foregroundHighlighted" />
+                            <span className="hidden reduceNav:block">{label}</span>
+                        </Link>
+                    ))}
                 </div>
-                <div className="flex navTop:flex-col flex-row text-sm font-bold navTop:w-full navTop:h-fit">
-                    {botLinks.map((link, i) => {
-                        return (
-                            <Link draggable={false} key={i} target="_blank" href={link.href} className="flex flex-row gap-2 h-full navTop:h-fit reduceNav:px-3 reduceNav:justify-start justify-center items-center navTop:py-2 p-2 group hover:bg-backgroundBoxHover text-foregroundGrey hover:text-foregroundHighlighted transition-colors">
-                                <link.icon className="fill-foregroundGrey transition-colors group-hover:fill-foregroundHighlighted" />
-                                <span className="reduceNav:block hidden">{link.label}</span>
-                            </Link>
-                        )
-                    })}
-                </div>
+                <button
+                    ref={settingsButton}
+                    aria-label="Settings"
+                    aria-controls="site-settings"
+                    aria-expanded={isOpen}
+                    title="Settings"
+                    type="button"
+                    onClick={() => setOpenedMenu(isOpen ? null : "settings")}
+                    className="fixed bottom-2 left-2 z-[510] flex items-center justify-start gap-2.5 rounded-borderRoundness bg-[#252421] px-3.5 py-2.5 text-lg font-bold leading-none text-[#dedede] hover:bg-backgroundBoxBoxHover navTop:static navTop:w-full"
+                >
+                    <Image src={`${process.env.NEXT_PUBLIC_BASE_PATH}/images/setting.svg`} alt="" width={27} height={27} draggable={false} />
+                    Settings
+                </button>
             </div>
-            <div ref={menuRef} style={{display: openedMenu ? '' : 'none'}} className="navTop:h-full h-fit max-h-[calc(100vh-42px)] navTop:max-h-full z-[500] p-2 bg-backgroundBoxDarker absolute navTop:left-full top-full navTop:top-0 select-none navTop:w-fit w-fit min-w-[300px] overflow-y-auto">
-                <Settings hidden={openedMenu !== 'settings'} />
+            <div id="site-settings" ref={settingsPanel} hidden={!isOpen} className="fixed bottom-14 left-2 z-[500] max-h-[calc(100dvh-68px)] w-[min(360px,calc(100vw-16px))] overflow-y-auto rounded-borderRoundness bg-backgroundBoxDarker p-2 select-none navTop:absolute navTop:bottom-2 navTop:left-full">
+                <Settings hidden={!isOpen} />
+                <Link href="/attributions" className="mt-2 block rounded-borderRoundness px-3 py-2 text-sm font-bold text-foregroundGrey hover:bg-backgroundBoxBoxHover hover:text-foregroundHighlighted">
+                    Licenses
+                </Link>
             </div>
         </nav>
     )

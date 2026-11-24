@@ -45,7 +45,8 @@ export default function Attributions() {
                     </h1>
                     <ul className="text-lg">
                         <li>Created by: <Link target="_blank" className="text-blue-600 hover:underline font-bold" href="https://github.com/nmrugg">Nmrugg</Link></li>
-                        <li>License: <Link target="_blank" className="text-blue-600 hover:underline font-bold" href="https://github.com/nmrugg/stockfish.js/blob/master/license.txt">GPL-3.0</Link></li>
+                        <li>License: <Link target="_blank" className="text-blue-600 hover:underline font-bold" href="/engine/LICENSE.txt">GPL-3.0</Link></li>
+                        <li>Source: <Link target="_blank" className="text-blue-600 hover:underline font-bold" href="https://github.com/nmrugg/stockfish.js/tree/v19.0.1">Stockfish.js 19.0.1</Link></li>
                     </ul>
                 </section>
             </main>

@@ -1,12 +1,9 @@
 import type { Metadata } from "next"
 import "./globals.css"
 
-import { Roboto } from 'next/font/google'
-
-const roboto = Roboto({
-  subsets: ['latin'],
-  weight: ['400', '700', '900'],
-})
+import "@fontsource/roboto/latin-400.css"
+import "@fontsource/roboto/latin-700.css"
+import "@fontsource/roboto/latin-900.css"
 
 export const metadata: Metadata = {
   title: "Brilliant Chess - Free Chess Analyzer",
@@ -22,8 +19,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html>
-      <body className={`flex navTop:flex-row flex-col items-center justify-start h-screen w-screen overflow-x-hidden ${roboto.className}`}>
+    <html lang="en">
+      <body className="flex navTop:flex-row flex-col items-center justify-start h-screen w-screen overflow-x-hidden">
         {children}
       </body>
     </html>

@@ -143,12 +143,16 @@ export default function AnalyzeContextProvider(props: { children: React.ReactNod
                     setForward(true)
                     setAnimation(true)
                     setCustomLine(prev => ({ ...prev, moveNumber: prev.moveNumber + 1 }))
+                } else {
+                    setPlaying(false)
                 }
                 return
             } else if (moveNumberRef.current < gameLengthRef.current - 1) {
                 setForward(true)
                 setAnimation(true)
                 setMoveNumber(prev => prev + 1)
+            } else {
+                setPlaying(false)
             }
         },
         first: () => {
@@ -169,7 +173,7 @@ export default function AnalyzeContextProvider(props: { children: React.ReactNod
                 setCustomLine(prev => ({ ...prev, moveNumber: prev.moves.length - 1 }))
             } else {
                 setAnimation(false)
-                setMoveNumber(gameLengthRef.current - 1)
+                setMoveNumber(Math.max(0, gameLengthRef.current - 1))
             }
         },
         togglePlay: () => {

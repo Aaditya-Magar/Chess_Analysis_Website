@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useState, Dispatch, SetStateAction, useRef } from 'react'
+import { createContext, useState, Dispatch, SetStateAction } from 'react'
 
 export type menu = "settings" | null
 
@@ -43,7 +43,6 @@ export const ConfigContext = createContext<{
     animateMoves: [boolean, Dispatch<SetStateAction<boolean>>],
     boardSounds: [boolean, Dispatch<SetStateAction<boolean>>],
 
-    boardMenuSettingsRef: React.MutableRefObject<HTMLButtonElement | null>,
 }>({
     openedMenu: [null, () => { }],
     boardTheme: [0, () => { }],
@@ -55,7 +54,6 @@ export const ConfigContext = createContext<{
     animateMoves: [true, () => { }],
     boardSounds: [true, () => { }],
 
-    boardMenuSettingsRef: { current: null },
 })
 
 export default function ConfigContextProvider(props: { children: React.ReactNode }) {
@@ -69,10 +67,9 @@ export default function ConfigContextProvider(props: { children: React.ReactNode
     const [animateMoves, setAnimateMoves] = useState<boolean>(true)
     const [boardSounds, setBoardSounds] = useState<boolean>(true)
 
-    const boardMenuSettingsRef = useRef<HTMLButtonElement>(null)
 
     return (
-        <ConfigContext.Provider value={{ boardTheme: [boardTheme, setBoardTheme], openedMenu: [openedMenu, setOpenedMenu], usedRatings: [usedRatings, setUsedRatings], highlightByRating: [highlightByRating, setHighlightByRating], showArrows: [showArrows, setShowArrows], arrowAfterMove: [arrowAfterMove, setArrowAfterMove], showLegalMoves: [showLegalMoves, setShowLegalMoves], animateMoves: [animateMoves, setAnimateMoves], boardSounds: [boardSounds, setBoardSounds], boardMenuSettingsRef: boardMenuSettingsRef }}>
+        <ConfigContext.Provider value={{ boardTheme: [boardTheme, setBoardTheme], openedMenu: [openedMenu, setOpenedMenu], usedRatings: [usedRatings, setUsedRatings], highlightByRating: [highlightByRating, setHighlightByRating], showArrows: [showArrows, setShowArrows], arrowAfterMove: [arrowAfterMove, setArrowAfterMove], showLegalMoves: [showLegalMoves, setShowLegalMoves], animateMoves: [animateMoves, setAnimateMoves], boardSounds: [boardSounds, setBoardSounds] }}>
             {props.children}
         </ConfigContext.Provider>
     )
