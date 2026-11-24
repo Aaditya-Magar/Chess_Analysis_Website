@@ -39,7 +39,11 @@ export default function getOverallGameComment(playerNames: [string, string], res
     const getComment = (commentList: string[], winner: string, loser: string) => {
         const tab = [`<span class="font-extrabold" style="color: var(--foregroundBlackDark);">`, `</span>`]
 
-        return commentList[Math.floor(Math.random() * commentList.length)].replace(/__WINNER__/g, tab[0] + winner + tab[1]).replace(/__LOSER__/g, tab[0] + loser + tab[1])
+        return commentList[Math.floor(Math.random() * commentList.length)].replace(/__WINNER__|__LOSER__/g, placeholder => {
+            const name = placeholder === "__WINNER__" ? winner : loser
+            const escaped = name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            return tab[0] + escaped + tab[1]
+        })
     }
 
     let comment: string, randomBool: boolean

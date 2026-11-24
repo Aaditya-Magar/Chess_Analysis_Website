@@ -6,14 +6,11 @@ import "@fontsource/roboto/latin-700.css"
 import "@fontsource/roboto/latin-900.css"
 
 export const metadata: Metadata = {
-  title: "Brilliant Chess - Free Chess Analyzer",
-  description: "Analyze your chess games and improve your skills completely free.",
-  keywords: ["chess", "chess analysis", "free chess analyzer", "free chess.com analyzer", "analyze chess for free", "analyze chess games", "brilliant move chess", "brilliant chess", "brilliant-chess"],
-  authors: [{ name: 'Delo', url: "https://github.com/wdeloo" }],
-  applicationName: "Brilliant Chess",
-
+  title: "MysteriousChess — Game Analysis",
+  description: "Import a chess game and review every move with Stockfish.",
+  applicationName: "MysteriousChess",
   icons: {
-    icon: "favicon.ico"
+    icon: `${process.env.NEXT_PUBLIC_BASE_PATH}/mysteriouschess.svg`,
   },
 }
 

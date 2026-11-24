@@ -1,8 +1,8 @@
 {
-  "name": "brilliant-chess",
+  "name": "mysteriouschess",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://wdeloo.github.io/Brilliant-Chess/",
+  "homepage": "https://github.com/Aaditya-Magar/chess-analysis-website",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --webpack",

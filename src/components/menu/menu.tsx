@@ -4,6 +4,7 @@ import { useContext, useEffect, useRef, useState } from "react"
 import { AnalyzeContext } from "@/context/analyze"
 
 import Lens from "../svg/lens"
+import { DEFAULT_ANALYSIS_DEPTH } from "@/engine/stockfish"
 import Form from "./analyze/form"
 import Loading from "./loading/loading"
 import GameButtons from "./analysis/gameButtons"
@@ -40,7 +41,6 @@ export default function Menu() {
     const setForward = analyzeContext.forward[1]
     const [customLine, setCustomLine] = analyzeContext.customLine
     const [returnedToNormalGame] = analyzeContext.returnedToNormalGame
-    const [depth, setDepth] = analyzeContext.depth
 
     const menuRef = useRef<HTMLDivElement>(null)
 
@@ -112,9 +112,9 @@ export default function Menu() {
                 })}
             </menu>
             <div className="overflow-y-auto h-full flex flex-col">
-                {pageState === 'default' && tab === 'analyze' ? <Form setData={setData} selectGame={(username: string, platform: platform) => { setUsername({platform, username}) }} depth={[depth, setDepth]} selected={[selected, select]} /> : ''}
-                {pageState === 'default' && tab === 'selectGame' && username.platform === "chessCom" && username.username ? <SelectChessComGame stopSelecting={stopSelecting} username={username.username} depth={depth} /> : ''}
-                {pageState === 'default' && tab === 'selectGame' && username.platform === "lichessOrg" && username.username ? <SelectLichessOrgGame stopSelecting={stopSelecting} username={username.username} depth={depth} /> : ''}
+                {pageState === 'default' && tab === 'analyze' ? <Form setData={setData} selectGame={(username: string, platform: platform) => { setUsername({platform, username}) }} selected={[selected, select]} /> : ''}
+                {pageState === 'default' && tab === 'selectGame' && username.platform === "chessCom" && username.username ? <SelectChessComGame stopSelecting={stopSelecting} username={username.username} depth={DEFAULT_ANALYSIS_DEPTH} /> : ''}
+                {pageState === 'default' && tab === 'selectGame' && username.platform === "lichessOrg" && username.username ? <SelectLichessOrgGame stopSelecting={stopSelecting} username={username.username} depth={DEFAULT_ANALYSIS_DEPTH} /> : ''}
 
                 {pageState === 'loading' && tab === 'analyze' ? <Loading format={format} analyzeController={analyzeController} /> : ''}
 

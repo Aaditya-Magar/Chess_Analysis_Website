@@ -7,7 +7,7 @@ import Clock from "./clock"
 import Name from "./name"
 import Evaluation from "./evaluation"
 import { AnalyzeContext, CustomLine } from "@/context/analyze"
-import { formatSquare, getCastle, invertColor, move, openings, parseMove, parsePGN, parsePosition, prepareStockfish, result, square } from "@/engine/stockfish"
+import { DEFAULT_ANALYSIS_DEPTH, formatSquare, getCastle, invertColor, move, openings, parseMove, parsePGN, parsePosition, prepareStockfish, result, square } from "@/engine/stockfish"
 import { Chess, PieceSymbol, WHITE } from "chess.js"
 import { pushPageWarning, pushPageError } from "@/components/errors/pageErrors"
 import { ErrorsContext } from "@/context/errors"
@@ -98,7 +98,6 @@ export default function Game() {
     const [customLine, setCustomLine] = analyzeContext.customLine
     const [returnedToNormalGame] = analyzeContext.returnedToNormalGame
     const [analyzingMove, setAnalyzingMove] = analyzeContext.analyzingMove
-    const [depth] = analyzeContext.depth
     const setMaterialAdvantage = analyzeContext.materialAdvantage[1]
 
     const gameController = analyzeContext.gameController
@@ -336,7 +335,7 @@ export default function Game() {
                     setAnalyzeController(new AbortController())
                     break
                 default:
-                    pushPageError(setErrors, 'Stockfish analysis failed', 'Try again or select a lower analysis depth.')
+                    pushPageError(setErrors, 'Stockfish analysis failed', 'Try again or reload the page.')
             }
 
             setPageState('default')
@@ -377,12 +376,12 @@ export default function Game() {
         try {
             const stockfish = engineWorkerRef.current
             if (!stockfish) throw new Error("Engine unavailable")
-            const position = await parsePosition(stockfish, chess, depth, analyzeController.signal)
+            const position = await parsePosition(stockfish, chess, DEFAULT_ANALYSIS_DEPTH, analyzeController.signal)
             setGame([position])
             setPageState("analyzeCustom")
         } catch {
             if (analyzeController.signal.aborted) setAnalyzeController(new AbortController())
-            else pushPageError(setErrors, "Stockfish analysis failed", "Try again or select a lower analysis depth.")
+            else pushPageError(setErrors, "Stockfish analysis failed", "Try again or reload the page.")
             setPageState("default")
         }
     }
@@ -391,7 +390,7 @@ export default function Game() {
         const { format, string } = data
         switch (format) {
             case "pgn":
-                handlePGN(string, depth)
+                handlePGN(string, DEFAULT_ANALYSIS_DEPTH)
                 break
             case "fen":
                 handleFEN(string)
@@ -411,12 +410,9 @@ export default function Game() {
             const statusBarHeight = statusBar?.offsetHeight ?? 0
             const gapHeight = newGap
 
-            const nav = document.getElementsByTagName("nav")[0]
-            const navWidth = nav?.offsetWidth ?? 0
-            const navHeight = nav?.offsetHeight ?? 0
             const evalWidth = 36
             const menuWidth = 400
-            const boardMenuWidth = 17
+            const boardMenuWidth = 32
             const gapWidth = 8
             const paddingWidth = 16
 
@@ -427,7 +423,7 @@ export default function Game() {
                 const paddingWidth = 8
                 const gameButtonsHeight = 40
 
-                const boardHeight = window.innerHeight - (navHeight + paddingWidth + evalWidth + gapWidth + statusBarHeight + gapWidth + gapWidth + statusBarHeight + gapHeight + gameButtonsHeight + gapHeight + boardMenuWidth + paddingWidth)
+                const boardHeight = window.innerHeight - (paddingWidth + evalWidth + gapWidth + statusBarHeight + gapWidth + gapWidth + statusBarHeight + gapHeight + gameButtonsHeight + gapHeight + boardMenuWidth + paddingWidth)
                 const maxWidth = window.innerWidth - (paddingWidth + paddingWidth)
 
                 const newBoardSize = roundBoardSize(Math.min(boardHeight, maxWidth))
@@ -446,7 +442,7 @@ export default function Game() {
                 const gameButtonsHeight = 69
 
                 const boardHeight = window.innerHeight - ((statusBarHeight * 2) + (gapHeight * 3) + (paddingWidth * 2) + gameButtonsHeight)
-                const maxWidth = window.innerWidth - (navWidth + paddingWidth + evalWidth + gapHeight + gapWidth + boardMenuWidth + paddingWidth)
+                const maxWidth = window.innerWidth - (paddingWidth + evalWidth + gapHeight + gapWidth + boardMenuWidth + paddingWidth)
 
                 const newBoardSize = roundBoardSize(Math.min(boardHeight, maxWidth))
 
@@ -457,7 +453,7 @@ export default function Game() {
             }
 
             const boardHeight = componentHeight - ((statusBarHeight * 2) + (gapHeight * 2))
-            const maxWidth = window.innerWidth - (navWidth + paddingWidth + evalWidth + gapHeight + gapWidth + boardMenuWidth + gapWidth + menuWidth + paddingWidth)
+            const maxWidth = window.innerWidth - (paddingWidth + evalWidth + gapHeight + gapWidth + boardMenuWidth + gapWidth + menuWidth + paddingWidth)
 
             const newBoardSize = roundBoardSize(Math.min(boardHeight, maxWidth))
 
@@ -522,7 +518,7 @@ export default function Game() {
         try {
             const stockfish = engineWorkerRef.current
             if (!stockfish) throw new Error("Engine unavailable")
-            const analyzed = await parseMove(stockfish, depth, unanalyzedMoveObj, chess, previousStaticEvals, previousBestMoveSan, previousSacrifice, openings, analyzeController.signal)
+            const analyzed = await parseMove(stockfish, DEFAULT_ANALYSIS_DEPTH, unanalyzedMoveObj, chess, previousStaticEvals, previousBestMoveSan, previousSacrifice, openings, analyzeController.signal)
             setCustomLine(prev => ({ ...prev, moves: [...prev.moves.slice(0, prev.moveNumber), analyzed] }))
         } catch {
             if (!analyzeController.signal.aborted) pushPageError(setErrors, "Variation analysis failed", "You can still return to the game.")

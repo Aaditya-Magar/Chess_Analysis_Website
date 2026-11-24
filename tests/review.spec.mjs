@@ -26,7 +26,15 @@ test("static export reviews pasted PGN and navigates on desktop", async ({ page 
 test("uploaded PGN reviews on a narrow screen", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto("/")
-    await page.getByLabel("Open PGN file").setInputFiles({
+    const upload = page.getByLabel("Open PGN file")
+    await expect(upload).toBeVisible()
+    await page.getByRole("button", { name: "Game format: PGN" }).click()
+    await expect(page.getByText("Analysis Type")).toHaveCount(0)
+    await page.getByRole("button", { name: "FEN", exact: true }).click()
+    await expect(upload).toHaveCount(0)
+    await page.getByRole("button", { name: "Game format: FEN" }).click()
+    await page.getByRole("button", { name: "PGN", exact: true }).click()
+    await upload.setInputFiles({
         name: "game.pgn",
         mimeType: "text/plain",
         buffer: Buffer.from(pgn),

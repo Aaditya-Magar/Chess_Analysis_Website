@@ -1,6 +1,6 @@
-# Brilliant Chess
+# MysteriousChess
 
-This project uses the MIT-licensed [Brilliant Chess](https://github.com/wdeloo/Brilliant-Chess) interface and game review workflow. Paste PGN, open a local PGN file, enter a FEN position, or choose an import source in the game form. Stockfish runs in the browser.
+Review chess games move by move. Paste PGN, open a local PGN file, enter a FEN position, or import a game from a supported platform. Stockfish runs in the browser.
 
 ## Local development
 

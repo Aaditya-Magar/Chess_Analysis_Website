@@ -2,6 +2,8 @@ import { players } from "@/context/analyze";
 import { BISHOP, Chess, Color, KNIGHT, Move, PAWN, PieceSymbol, QUEEN, ROOK, Square, WHITE } from "chess.js";
 import { SetStateAction } from "react";
 
+export const DEFAULT_ANALYSIS_DEPTH = 18
+
 export type result = '1-0' | '0-1' | '1/2-1/2' | '*' | ''
 
 export type position = ({
